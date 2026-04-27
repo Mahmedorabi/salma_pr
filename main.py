@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from pydantic import BaseModel, Field
+from pathlib import Path
 import numpy as np
 from tensorflow import keras
 from PIL import Image
@@ -7,13 +8,15 @@ import io
 import pickle
 from datetime import datetime
 
+BASE_DIR = Path(__file__).parent
+
 app = FastAPI(title="Stroke Detection API", version="1.0.0")
 
 # Load image model
-image_model = keras.models.load_model("stroke_image/stroke_image_v2.keras")
+image_model = keras.models.load_model(BASE_DIR / "stroke_image" / "stroke_image_v2.keras")
 
 # Load QA model
-with open("stroke_QA/stroke_QA.pkl", "rb") as f:
+with open(BASE_DIR / "stroke_QA" / "stroke_QA.pkl", "rb") as f:
     qa_model = pickle.load(f)
 
 
