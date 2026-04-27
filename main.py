@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from pathlib import Path
 import numpy as np
 from tensorflow import keras
+from tensorflow.keras import layers
 from PIL import Image
 import io
 import pickle
@@ -12,8 +13,31 @@ BASE_DIR = Path(__file__).parent
 
 app = FastAPI(title="Stroke Detection API", version="1.0.0")
 
-# Load image model
-image_model = keras.models.load_model(BASE_DIR / "stroke_image" / "stroke_image_v2.keras")
+
+def _build_image_model() -> keras.Sequential:
+    # Architecture read from the saved model config.
+    # Weights are loaded separately to avoid Keras version deserialization errors.
+    model = keras.Sequential([
+        layers.Input(shape=(224, 224, 3)),
+        layers.Conv2D(100, (3, 3), activation="relu"),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(80, (3, 3), activation="relu"),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(64, (3, 3), activation="relu"),
+        layers.MaxPooling2D((2, 2)),
+        layers.Flatten(),
+        layers.Dense(500, activation="relu"),
+        layers.Dropout(0.2),
+        layers.Dense(500, activation="relu"),
+        layers.Dropout(0.2),
+        layers.Dense(1, activation="sigmoid"),
+    ])
+    model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
+    return model
+
+
+image_model = _build_image_model()
+image_model.load_weights(str(BASE_DIR / "stroke_image" / "stroke_image_v2.keras"))
 
 # Load QA model
 with open(BASE_DIR / "stroke_QA" / "stroke_QA.pkl", "rb") as f:
